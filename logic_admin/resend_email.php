@@ -52,38 +52,90 @@ $sisa  = number_format($data['harga_total'] / 2, 0, ',', '.');
 
 if ($data['status_order'] === 'Belum Bayar') {
 
-  $subject = 'Reminder Pembayaran Pesanan';
+  $subject = 'Pengingat Pembayaran Pesanan Anda';
   $message = "
-        Yth. $nama,<br><br>
-        Ini adalah pengingat bahwa batas waktu pembayaran pesanan Anda adalah
-        <b>hari ini pukul 24.00 WIB</b>.<br><br>
-        Total yang harus dibayarkan: <b>Rp $total</b><br><br>
-        Mohon segera melakukan pembayaran agar pesanan dapat diproses.<br><br>
-        Terima kasih.
-    ";
+Yth. Bapak/Ibu <b>$nama</b>,<br><br>
+
+Terima kasih telah melakukan pemesanan di <b>Presisi</b>.<br><br>
+
+Kami ingin mengingatkan bahwa hingga saat ini pembayaran untuk pesanan Anda masih <b>belum kami terima</b>.<br><br>
+
+<b>Detail Pembayaran:</b><br>
+Total yang harus dibayarkan: <b>Rp $total</b><br>
+Batas waktu pembayaran: <b>Hari ini pukul 24.00 WIB</b><br><br>
+
+Mohon kesediaannya untuk segera melakukan pembayaran agar pesanan dapat segera kami proses.<br><br>
+
+Apabila pembayaran telah dilakukan, abaikan email ini.<br><br>
+
+Terima kasih atas kepercayaan Anda kepada kami.<br><br>
+
+Hormat kami,<br>
+<b>Admin Presisi</b>
+";
 } elseif ($data['jenis_bayar'] === 'DP' && $data['status_bayar'] === 'Lunas DP1') {
 
-  $subject = 'Reminder Pelunasan Pembayaran';
+  $subject = 'Pengingat Pelunasan Pembayaran Pesanan';
   $message = "
-        Yth. $nama,<br><br>
-        Kami informasikan bahwa pembayaran DP pertama (50%) telah kami terima.<br><br>
-        Mohon segera melakukan <b>pelunasan sisa 50%</b> sebesar:
-        <b>Rp $sisa</b><br><br>
-        Batas waktu pembayaran adalah <b>hari ini pukul 24.00 WIB</b>.<br><br>
-        Terima kasih atas kerja samanya.
-    ";
+Yth. Bapak/Ibu <b>$nama</b>,<br><br>
+
+Terima kasih, pembayaran <b>DP pertama (50%)</b> untuk pesanan Anda telah kami terima dengan baik.<br><br>
+
+Untuk melanjutkan proses pesanan, kami informasikan bahwa masih terdapat sisa pembayaran yang perlu dilunasi dengan rincian berikut:<br><br>
+
+<b>Detail Pelunasan:</b><br>
+Sisa pembayaran (50%): <b>Rp $sisa</b><br>
+Batas waktu pelunasan: <b>Hari ini pukul 24.00 WIB</b><br><br>
+
+Mohon kesediaannya untuk segera melakukan pelunasan agar proses pesanan dapat dilanjutkan tanpa kendala.<br><br>
+
+Terima kasih atas kerja sama dan kepercayaan Anda kepada kami.<br><br>
+
+Hormat kami,<br>
+<b>Admin Presisi</b>
+";
 } elseif ($data['jenis_bayar'] === 'DP' && $data['status_bayar'] === 'Belum Bayar') {
 
-  $subject = 'Reminder Pembayaran DP';
+  $subject = 'Pengingat Pembayaran DP Pesanan';
   $message = "
-        Yth. $nama,<br><br>
-        Ini adalah pengingat untuk melakukan pembayaran DP pertama sebesar
-        <b>50% dari total pesanan</b>.<br><br>
-        Total pesanan: <b>Rp $total</b><br>
-        DP yang harus dibayarkan: <b>Rp $sisa</b><br><br>
-        Batas pembayaran adalah <b>hari ini pukul 24.00 WIB</b>.<br><br>
-        Terima kasih.
-    ";
+Yth. Bapak/Ibu <b>$nama</b>,<br><br>
+
+Terima kasih telah melakukan pemesanan di <b>Presisi</b>.<br><br>
+
+Sebagai informasi, pesanan Anda menggunakan metode pembayaran <b>Down Payment (DP)</b>.
+Saat ini pembayaran DP pertama masih <b>belum kami terima</b>.<br><br>
+
+<b>Detail Pembayaran:</b><br>
+Total pesanan: <b>Rp $total</b><br>
+DP yang harus dibayarkan (50%): <b>Rp $sisa</b><br>
+Batas waktu pembayaran: <b>Hari ini pukul 24.00 WIB</b><br><br>
+
+Mohon kesediaannya untuk melakukan pembayaran DP agar pesanan dapat segera kami proses.<br><br>
+
+Terima kasih atas perhatian dan kerja samanya.<br><br>
+
+Hormat kami,<br>
+<b>Admin Presisi</b>
+";
+} elseif ($data['status_order'] === 'Lunas Pembayaran') {
+
+  $subject = 'Konfirmasi Pembayaran Pesanan';
+  $message = "
+Yth. Bapak/Ibu <b>$nama</b>,<br><br>
+
+Terima kasih atas pembayaran yang telah Anda lakukan.<br><br>
+
+Dengan ini kami informasikan bahwa <b>pembayaran pesanan Anda telah kami terima sepenuhnya</b>.<br><br>
+
+Saat ini pesanan Anda akan segera masuk ke tahap proses pengerjaan.
+Kami akan terus memberikan informasi terkait perkembangan pesanan Anda.<br><br>
+
+Terima kasih atas kepercayaan Anda kepada <b>Presisi</b>.<br><br>
+
+Hormat kami,<br>
+<b>Admin Presisi</b>
+";
+
 } elseif ($data['status_order'] === 'Menunggu Dikirim') {
 
   $subject = 'Pesanan Telah Diserahkan ke Kurir';
@@ -99,6 +151,8 @@ if ($data['status_order'] === 'Belum Bayar') {
 /* ======================
    KIRIM EMAIL
 ====================== */
+require_once __DIR__ . '/invoice_template.php';
+
 try {
   $mail = new PHPMailer(true);
   $mail->isSMTP();
@@ -108,6 +162,9 @@ try {
   $mail->Password   = 'gvsv ximh bxwp xfbq';
   $mail->SMTPSecure = 'tls';
   $mail->Port       = 587;
+  $html = invoiceHTML($invoiceData);
+  $mail->addAttachment($invoicePath, 'Kwitansi_Pembayaran.pdf');
+
 
   $mail->setFrom('siapafikri045@gmail.com', 'Admin Toko');
   $mail->addAddress($data['email'], $data['nama_cust']);
@@ -117,18 +174,28 @@ try {
   $mail->Body    = $message;
 
   $mail->send();
+if ($data['status_order'] === 'Lunas Pembayaran') {
+    $upd = db()->prepare("
+        UPDATE tb_penjualan 
+        SET status_order = 'Dalam Pengerjaan'
+        WHERE id_jual = ?
+    ");
+    $upd->bind_param("i", $id);
+    $upd->execute();
+}
 
   $_SESSION['flash'] = [
     'type' => 'success',
     'msg'  => 'Email berhasil dikirim ke customer'
   ];
-  
 } catch (Exception $e) {
   $_SESSION['flash'] = [
     'type' => 'error',
     'msg'  => 'Email gagal dikirim'
   ];
 }
+
+
 
 header('Location: ../penjualan.php');
 exit;

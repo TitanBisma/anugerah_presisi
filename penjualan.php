@@ -277,6 +277,20 @@ $result = mysqli_query($conn, $query);
         .modal-edit-content button:hover {
             background: #2563eb;
         }
+
+        .btn-proses-pesanan {
+            background-color: #2563eb;
+            /* biru */
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            text-decoration: none;
+        }
+
+        .btn-proses-pesanan:hover {
+            background-color: #1e40af;
+        }
     </style>
 </head>
 
@@ -376,6 +390,23 @@ $result = mysqli_query($conn, $query);
 
                             <?php endif; ?>
 
+                            <?php if (in_array($row['status_order'], [
+                                'Lunas Pembayaran',
+                                'Dalam Pengerjaan',
+                                'Barang Sudah Siap',
+                                'Menunggu Dikirim'
+                            ])): ?>
+                                <a href="logic_admin/proses_pesanan.php?id=<?= $row['id_jual'] ?>"
+                                    class="btn btn-proses-pesanan"
+                                    data-id="<?= $row['id_jual'] ?>"
+                                    data-nama="<?= htmlspecialchars($row['nama_cust']) ?>"
+                                    data-email="<?= htmlspecialchars($row['email']) ?>"
+                                    data-status="<?= $row['status_order'] ?>">
+                                    🔄 Proses Pesanan
+                                </a>
+
+                            <?php endif; ?>
+
                             <?php
                             /* ======================
        LOGIKA AKSI BERDASARKAN STATUS ORDER
@@ -435,20 +466,19 @@ $result = mysqli_query($conn, $query);
 
                             <?php
                             /* ======================
-       MENUNGGU DIKIRIM
+       LUNAS PEMBAYARAN
     ====================== */
-                            elseif ($row['status_order'] === 'Menunggu Dikirim'): ?>
+                            elseif ($row['status_order'] === 'Lunas Pembayaran'): ?>
 
+                                <!-- KIRIM EMAIL -->
                                 <a href="javascript:void(0)"
                                     class="btn-email"
-                                    onclick="openPengirimanModal(this)"
-                                    data-id="<?= $row['id_jual']; ?>"
-                                    data-nama="<?= htmlspecialchars($row['nama_cust']); ?>"
-                                    data-email="<?= htmlspecialchars($row['email']); ?>">
+                                    onclick="confirmSendEmail(<?= $row['id_jual']; ?>)">
                                     Kirim Email
                                 </a>
 
                             <?php
+
                             /* ======================
        MENUNGGU PENGIRIMAN
     ====================== */
@@ -516,7 +546,6 @@ $result = mysqli_query($conn, $query);
                     <option value="">- Pilih Status Bayar -</option>
                     <option value="Belum Bayar">Belum Bayar</option>
                     <option value="Lunas DP1">Lunas DP1</option>
-                    <option value="Lunas DP2">Lunas DP2</option>
                     <option value="Lunas Full">Lunas Full</option>
 
                 </select>
@@ -525,7 +554,9 @@ $result = mysqli_query($conn, $query);
                 <select name="status_order" id="edit_status_order" required>
                     <option value="Belum Diterima">Belum Diterima</option>
                     <option value="Menunggu Pembayaran">Menunggu Pembayaran</option>
-                    <option value="Lunas Full">Lunas Full</option>
+                    <option value="Lunas Pembayaran">Lunas Pembayaran</option>
+                    <option value="Dalam Pengerjaan">Dalam Pengerjaan</option>
+                    <option value="Barang Sudah Siap">Barang Sudah SIap</option>
                     <option value="Menunggu Dikirim">Menunggu Dikirim</option>
                     <option value="Dalam Pengiriman">Dalam Pengiriman</option>
                     <option value="Selesai">Selesai</option>
@@ -541,55 +572,92 @@ $result = mysqli_query($conn, $query);
     </div>
 
     <script>
-        function openPengirimanModal(btn) {
-            const idJual = btn.dataset.id;
-            const nama = btn.dataset.nama;
-            const email = btn.dataset.email;
+        document.querySelectorAll('.btn-proses-pesanan').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
 
-            Swal.fire({
-                title: 'Input Data Pengiriman',
-                html: `
-            <input id="kurir" class="swal2-input" placeholder="Kurir">
-            <input id="tgl_kirim" type="date" class="swal2-input">
-            <input id="no_resi" class="swal2-input" placeholder="No Resi">
-            <input id="ongkir" type="number" class="swal2-input" placeholder="Ongkir">
+                const idJual = this.dataset.id;
+                const nama = this.dataset.nama;
+                const email = this.dataset.email;
+                const status = this.dataset.status;
+                const url = this.getAttribute('href');
+
+                // ===============================
+                // JIKA STATUS = MENUNGGU DIKIRIM
+                // ===============================
+                if (status === 'Menunggu Dikirim') {
+
+                    Swal.fire({
+                        title: 'Input Data Pengiriman',
+                        html: `
+          <input id="kurir" class="swal2-input" placeholder="Nama Kurir">
+          <input id="tgl_kirim" type="date" class="swal2-input">
+          <input id="no_resi" class="swal2-input" placeholder="Nomor Resi">
+          <input id="ongkir" type="number" class="swal2-input" placeholder="Ongkir">
         `,
-                focusConfirm: false,
-                showCancelButton: true,
-                confirmButtonText: 'Kirim & Simpan',
-                preConfirm: () => {
-                    return {
-                        id_jual: idJual,
-                        kurir: document.getElementById('kurir').value,
-                        tgl_kirim: document.getElementById('tgl_kirim').value,
-                        no_resi: document.getElementById('no_resi').value,
-                        ongkir: document.getElementById('ongkir').value
-                    };
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
+                        focusConfirm: false,
+                        showCancelButton: true,
+                        confirmButtonText: 'Simpan & Kirim',
+                        preConfirm: () => {
+                            return {
+                                id_jual: idJual,
+                                kurir: document.getElementById('kurir').value,
+                                tgl_kirim: document.getElementById('tgl_kirim').value,
+                                no_resi: document.getElementById('no_resi').value,
+                                ongkir: document.getElementById('ongkir').value
+                            };
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
 
-                    fetch('logic_admin/pengiriman_store.php', {
-                            method: 'POST',
-                            body: JSON.stringify(result.value),
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        })
-                        .then(res => res.json())
-                        .then(res => {
-                            if (res.ok) {
-                                Swal.fire('Berhasil', 'Data pengiriman disimpan & email terkirim', 'success')
-                                    .then(() => location.reload());
-                            } else {
-                                Swal.fire('Gagal', res.message, 'error');
-                            }
-                        });
+                            fetch('logic_admin/pengiriman_store.php', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify(result.value)
+                                })
+                                .then(res => res.json())
+                                .then(res => {
+                                    if (res.ok) {
+                                        Swal.fire(
+                                            'Berhasil',
+                                            'Data pengiriman disimpan & email terkirim ke customer',
+                                            'success'
+                                        ).then(() => location.reload());
+                                    } else {
+                                        Swal.fire('Gagal', res.message, 'error');
+                                    }
+                                });
+
+                        }
+                    });
 
                 }
+                // ===============================
+                // STATUS LAIN → PROSES BIASA
+                // ===============================
+                else {
+
+                    Swal.fire({
+                        title: 'Proses Pesanan?',
+                        html: `Pesanan atas nama <b>${nama}</b> akan diproses ke tahap berikutnya.`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Proses',
+                        cancelButtonText: 'Batal'
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            window.location.href = url;
+                        }
+                    });
+
+                }
+
             });
-        }
+        });
     </script>
+
 
 
     <!-- Script Acc Pesanan -->
@@ -812,7 +880,7 @@ $result = mysqli_query($conn, $query);
                             }
                         })
                         .catch(() => {
-                            Swal.fire('Error', 'Terjadi kesalahan server', 'error');
+                            Swal.fire('Gagal Menyelesaikan Penjualan', 'Status pengiriman barang ini belum diselesaikan', 'error');
                         });
                 }
             });
@@ -839,9 +907,6 @@ $result = mysqli_query($conn, $query);
             });
         }
     </script>
-
-
-
 
 
 </body>

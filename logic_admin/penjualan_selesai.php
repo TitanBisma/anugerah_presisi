@@ -22,7 +22,38 @@ if (!$id) {
     exit;
 }
 
-/* UPDATE STATUS PESANAN */
+/* ===========================
+   CEK STATUS PENGIRIMAN
+=========================== */
+$cek = mysqli_prepare($conn, "
+    SELECT status_pengiriman 
+    FROM tb_pengiriman 
+    WHERE id_jual = ?
+");
+mysqli_stmt_bind_param($cek, 'i', $id);
+mysqli_stmt_execute($cek);
+$result = mysqli_stmt_get_result($cek);
+$data = mysqli_fetch_assoc($result);
+
+if (!$data) {
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Data pengiriman belum tersedia'
+    ]);
+    exit;
+}
+
+if ($data['status_pengiriman'] !== 'Sudah Tiba') {
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Pesanan tidak dapat diselesaikan karena barang belum tiba di tujuan'
+    ]);
+    exit;
+}
+
+/* ===========================
+   UPDATE STATUS PESANAN
+=========================== */
 $query = "UPDATE tb_penjualan 
           SET status_order = 'Selesai' 
           WHERE id_jual = ?";

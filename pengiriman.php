@@ -25,7 +25,6 @@ $result = mysqli_query($conn, $query);
     <meta charset="UTF-8">
     <title>Manajemen Pengiriman</title>
 
-    <link rel="stylesheet" href="assets/css/admin.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
@@ -320,6 +319,19 @@ $result = mysqli_query($conn, $query);
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <?php if (!empty($_SESSION['flash'])): ?>
+        <script>
+            Swal.fire({
+                icon: '<?= $_SESSION['flash']['type']; ?>',
+                title: '<?= $_SESSION['flash']['type'] === 'success' ? 'Berhasil' : 'Gagal'; ?>',
+                text: '<?= $_SESSION['flash']['msg']; ?>',
+                timer: 2500,
+                showConfirmButton: false
+            });
+        </script>
+    <?php unset($_SESSION['flash']);
+    endif; ?>
 
 
 
@@ -447,8 +459,9 @@ $result = mysqli_query($conn, $query);
                     Swal.fire('Error', 'Terjadi kesalahan server', 'error');
                 });
         }
+    </script>
 
-
+    <script>
         function hapusPengiriman(id) {
             Swal.fire({
                 title: 'Hapus Data?',
@@ -464,9 +477,7 @@ $result = mysqli_query($conn, $query);
             });
         }
     </script>
-    <?php if (!empty($_SESSION['flash'])): ?>
-    <?php unset($_SESSION['flash']);
-    endif; ?>
+
 </body>
 
 </html>
