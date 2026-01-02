@@ -465,19 +465,6 @@ $result = mysqli_query($conn, $query);
                                 </a>
 
                             <?php
-                            /* ======================
-       LUNAS PEMBAYARAN
-    ====================== */
-                            elseif ($row['status_order'] === 'Lunas Pembayaran'): ?>
-
-                                <!-- KIRIM EMAIL -->
-                                <a href="javascript:void(0)"
-                                    class="btn-email"
-                                    onclick="confirmSendEmail(<?= $row['id_jual']; ?>)">
-                                    Kirim Email
-                                </a>
-
-                            <?php
 
                             /* ======================
        MENUNGGU PENGIRIMAN
@@ -824,8 +811,6 @@ $result = mysqli_query($conn, $query);
                 text: 'Email akan dikirim ke customer terkait pesanan ini.',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#2563eb',
-                cancelButtonColor: '#64748b',
                 confirmButtonText: 'Ya, Kirim',
                 cancelButtonText: 'Batal'
             }).then((result) => {
@@ -836,10 +821,11 @@ $result = mysqli_query($conn, $query);
                         allowOutsideClick: false,
                         didOpen: () => {
                             Swal.showLoading();
-                            window.location.href = 'logic_admin/resend_email.php?id=' + idJual;
                         }
                     });
-                    window.location.href = 'logic_admin/resend_email.php?id=' + idJual;
+
+                    window.location.href =
+                        'logic_admin/resend_email.php?id=' + idJual;
                 }
             });
         }

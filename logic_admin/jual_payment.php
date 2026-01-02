@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
+
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -24,11 +25,17 @@ if ($id_jual <= 0) {
    AMBIL DATA PESANAN
 ====================== */
 $stmt = $conn->prepare("
-    SELECT * FROM tb_penjualan WHERE id_jual = ?
+    SELECT 
+        p.*,
+        b.nama_brg
+    FROM tb_penjualan p
+    LEFT JOIN tb_barang b ON p.id_brg = b.id_brg
+    WHERE p.id_jual = ?
 ");
 $stmt->bind_param("i", $id_jual);
 $stmt->execute();
 $order = $stmt->get_result()->fetch_assoc();
+
 
 if (!$order) {
     header('Location: ../penjualan.php');
@@ -38,10 +45,56 @@ if (!$order) {
 $email = $order['email'];
 $nama  = $order['nama_cust'];
 
+$modeTransaksi = '';
+
+if ($order['jenis_bayar'] === 'DP') {
+    if ($order['status_bayar'] === 'Belum Bayar') {
+        $modeTransaksi = 'DP1';
+    } elseif ($order['status_bayar'] === 'Lunas DP1') {
+        $modeTransaksi = 'PELUNASAN';
+    }
+} else {
+    $modeTransaksi = 'FULL';
+}
+
+
 $statusBayarBaru = '';
 $statusOrderBaru = 'Menunggu Pengiriman';
 $subject = '';
 $body = '';
+
+$total = (int)$order['harga_total'];
+$dp    = $total * 0.5;
+$sisa  = $total - $dp;
+
+/* Default */
+$nominalBayar   = $total;
+$keterangan     = 'Pembayaran Pesanan (Lunas)';
+$statusKwitansi = 'Lunas';
+
+/* Jika DP */
+switch ($modeTransaksi) {
+    case 'DP1':
+        $nominalBayar   = $dp;
+        $keterangan     = 'Pembayaran Down Payment (DP) 50%';
+        $statusKwitansi = 'DP 50% Dibayar';
+        break;
+
+    case 'PELUNASAN':
+        $nominalBayar   = $sisa;
+        $keterangan     = 'Pelunasan Pembayaran Pesanan';
+        $statusKwitansi = 'Lunas';
+        break;
+
+    case 'FULL':
+    default:
+        $nominalBayar   = $total;
+        $keterangan     = 'Pembayaran Pesanan (Lunas)';
+        $statusKwitansi = 'Lunas';
+        break;
+}
+
+
 
 /* ======================
    LOGIKA PEMBAYARAN
@@ -59,17 +112,19 @@ if ($order['jenis_bayar'] === 'DP') {
         $body = "
         <p>Yth. <strong>{$nama}</strong>,</p>
 
-        <p>Terima kasih telah melakukan pembayaran pesanan di <strong>Presisi</strong>.</p>
+        <p>Kami mengucapkan terima kasih telah melakukan pembayaran DP pesanan di <strong>CV. Anugerah Presisi</strong>.</p>
 
         <p>Kami mengonfirmasi bahwa pembayaran Anda telah <strong>berhasil kami terima</strong> dengan rincian sebagai berikut:</p>
 
-        <ul>
-            <li><strong>Nomor Pesanan</strong> : #{$id_jual}</li>
-            <li><strong>Jenis Pembayaran</strong> : {$order['jenis_bayar']}</li>
-            <li><strong>Status Pembayaran</strong> : {$statusBayarBaru}</li>
-        </ul>
+       <b>Detail Pesanan:</b><br>
+        Nama Barang: <b>{$order['nama_brg']}</b><br>
+        Total Pesanan: <b>{$order['qty']} pcs</b><br>
+        DP yang sudah terbayarkan (50%): <b>Rp. $dp</b><br>
+        Sisa Pembayaran: <b>Rp. $sisa</b><br>
+        Harga Total: <b>Rp $total</b><br><br>
 
-        <p>Saat ini pesanan Anda telah masuk ke tahap selanjutnya dan akan segera kami proses sesuai prosedur.</p>
+
+        <p>Saat ini pesanan Anda telah masuk ke tahap pengerjaan awal dan akan segera kami proses sesuai prosedur.</p>
 
         <p>Apabila Anda memiliki pertanyaan lebih lanjut, jangan ragu untuk menghubungi kami.</p>
 
@@ -90,24 +145,25 @@ if ($order['jenis_bayar'] === 'DP') {
 
         $body = "
         <p>Yth. <strong>{$nama}</strong>,</p>
+        <p>Kami mengucapkan terima kasih atas pelunasan pembayaran Full DP pesanan Anda di <strong>CV. Anugerah Presisi</strong>.</p>
 
-        <p>Kami mengucapkan terima kasih atas pelunasan pembayaran pesanan Anda.</p>
+        <p>Dengan ini kami konfirmasikan bahwa pembayaran pesanan Anda dengan rincian berikut dianggap lunas: </p> <br>
+        <b>Detail Pesanan:</b><br>
+        Nama Barang: <b>{$order['nama_brg']}</b><br>
+        Total Pesanan: <b>{$order['qty']} pcs</b><br>
+        DP yang sudah terbayarkan saat ini (Full): <b>Rp. $total</b><br>
+        Harga Total: <b>Rp. $total</b><br><br>
 
-        <p>Dengan ini kami konfirmasikan bahwa pembayaran pesanan dengan nomor
-        <strong>#{$id_jual}</strong> telah <strong>lunas sepenuhnya</strong>.</p>
-
-        <p>Pesanan Anda akan segera masuk ke tahap <strong>pengerjaan</strong>.
+        <p>Berhubung Anda telah melakukan pelunasan terhadap pesanan ini. Maka selanjutnya pesanan Anda akan segera masuk ke tahap <strong>Finishing</strong>.
         Kami akan menginformasikan kembali apabila proses telah selesai dan barang siap dikirim.</p>
 
-        <p>Sebagai bukti pembayaran, kami lampirkan <strong>kwitansi resmi</strong> pada email ini.</p>
+        <p>Sebagai bukti pembayaran, kami lampirkan <strong>kwitansi</strong> pada email ini.</p>
 
         <p>Terima kasih atas kepercayaan dan kerja sama Anda.</p>
-
         <p>Hormat kami,<br>
-        <strong>Tim Presisi</strong></p>
+            <strong>Admin CV. Anugerah Presisi</strong></p>
         ";
     }
-    
 } else {
     // BAYAR FULL
     $statusBayarBaru = 'Lunas Full';
@@ -115,12 +171,22 @@ if ($order['jenis_bayar'] === 'DP') {
 
     $subject = 'Konfirmasi Pembayaran Berhasil';
     $body = "
-    Halo <b>{$nama}</b>,<br><br>
-    Kami menginformasikan bahwa pembayaran pesanan Anda telah
-    <b>kami terima</b>.<br><br>
-    Mohon ditunggu informasi pengiriman dalam
-    <b>1x24 jam hari kerja</b>.<br><br>
-    Terima kasih.
+    <p>Yth. <strong>{$nama}</strong>,</p>
+    <p>Kami mengucapkan terima kasih telah melakukan pembayaran DP pesanan di <strong>CV. Anugerah Presisi</strong>.</p>
+    <p>Kami mengonfirmasi bahwa pembayaran Anda telah <strong>berhasil kami terima</strong> dengan rincian sebagai berikut:</p>
+    
+    <b>Detail Pesanan:</b><br>
+        Nama Barang: <b>{$order['nama_brg']}</b><br>
+        Total Pesanan: <b>{$order['qty']} pcs</b><br>
+        Harga Total: <b>Rp $total</b><br><br>
+    <p>Pesanan Anda akan segera masuk ke tahap <strong>Pengerjaan</strong>.
+    Kami akan menginformasikan kembali apabila proses telah selesai dan barang siap dikirim.</p>
+
+    <p>Sebagai bukti pembayaran, kami lampirkan <strong>kwitansi</strong> pada email ini.</p>
+
+    <p>Terima kasih atas kepercayaan dan kerja sama Anda.</p>
+    <p>Hormat kami,<br>
+        <strong>Admin CV. Anugerah Presisi</strong></p>
     ";
 }
 
@@ -136,8 +202,6 @@ $upd = $conn->prepare("
 $upd->bind_param("ssi", $statusBayarBaru, $statusOrderBaru, $id_jual);
 $upd->execute();
 
-// Data Invoice
-require_once __DIR__ . '/../logic_admin/invoice_template.php';
 
 /* Tentukan jenis invoice */
 $jenisInvoice = 'Pembayaran Lunas';
@@ -151,35 +215,36 @@ if ($order['jenis_bayar'] === 'DP') {
 }
 
 /* Data invoice */
-$invoiceData = [
-    'nama'   => $nama,
-    'email'  => $email,
-    'tgl'    => date('d-m-Y'),
-    'barang' => 'Pesanan #' . $id_jual,
-    'qty'    => 1,
-    'harga'  => $order['harga_total'],
-    'total'  => $order['harga_total'],
-    'status' => $jenisInvoice
-];
+require_once __DIR__ . '/kwitansi/kwitansi_template.php';
 
-$htmlInvoice = invoiceHTML($invoiceData);
+$kwitansiData = [
+    'id_jual'    => $id_jual,
+    'nama'       => $nama,
+    'barang'     => $order['nama_brg'] ?? 'Barang tidak tersedia',
+    'qty'        => $order['qty'],
+    'tanggal'    => date('d-m-Y'),
+    'nominal'    => $nominalBayar,
+    'total'      => $total,
+    'keterangan' => $keterangan,
+    'status'     => $statusKwitansi
+];
 
 $options = new Options();
 $options->set('isRemoteEnabled', true);
 
 $dompdf = new Dompdf($options);
-$dompdf->loadHtml(invoiceHTML($invoiceData));
+$dompdf->loadHtml(kwitansiHTML($kwitansiData));
 $dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
 
-/* pastikan folder ada */
+/* Folder kwitansi */
 $dir = __DIR__ . '/../assets/kwitansi';
 if (!is_dir($dir)) {
     mkdir($dir, 0777, true);
 }
 
-$invoicePath = $dir . "/kwitansi_{$id_jual}.pdf";
-file_put_contents($invoicePath, $dompdf->output());
+$kwitansiPath = $dir . "/kwitansi_{$id_jual}.pdf";
+file_put_contents($kwitansiPath, $dompdf->output());
 
 
 /* ======================
@@ -194,7 +259,8 @@ try {
     $mail->Password   = 'gvsv ximh bxwp xfbq';
     $mail->SMTPSecure = 'tls';
     $mail->Port       = 587;
-    $mail->addAttachment($invoicePath, 'Kwitansi_Pembayaran.pdf');
+    $mail->addAttachment($kwitansiPath, 'Kwitansi_Pembayaran.pdf');
+
 
     $mail->setFrom('siapafikri045@gmail.com', 'Admin Presisi');
     $mail->addAddress($email, $nama);
@@ -208,9 +274,19 @@ try {
     // kalau email gagal, status tetap update (opsional)
 }
 
+if (file_exists($kwitansiPath)) {
+    unlink($kwitansiPath);
+}
+
+
 /* ======================
    REDIRECT
 ====================== */
+$_SESSION['flash'] = [
+    'type' => 'success',
+    'msg'  => 'Pembayaran berhasil dikonfirmasi & email terkirim'
+];
+
 $_SESSION['flash'] = [
     'type' => 'success',
     'msg'  => 'Pembayaran berhasil dikonfirmasi & email terkirim'
