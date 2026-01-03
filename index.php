@@ -806,19 +806,23 @@ $hargaAsli = $selectedRow ? (float)$selectedRow['harga'] : 0;
         <section class="map-section map-style-9">
           <div class="map-container">
             <iframe
-              style="border:0; height:500px; width:100%;"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3964.0517308583558!2d106.80879704339263!3d-6.5151368496517925!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69c3cd1263e429%3A0x74f80e1849d02bfa!2sPuri%20Nirwana%203!5e0!3m2!1sen!2sid!4v1767422410830!5m2!1sen!2sid"
+              style="border:0; width:100%; height:500px;"
+              allowfullscreen
               loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-              src="https://www.google.com/maps?q=Jakarta%2C%20Indonesia&z=11&output=embed">
+              referrerpolicy="no-referrer-when-downgrade">
             </iframe>
-            <!-- fallback link (opsional) -->
+
             <p style="margin-top:8px; text-align:center;">
-              <a href="https://www.google.com/maps/place/Jakarta,+Indonesia" target="_blank" rel="noopener">
-                Buka peta di Google Maps
+              <a href="https://maps.app.goo.gl/3rEfH8YYLTxGJLN67"
+                target="_blank" rel="noopener">
+                Buka lokasi di Google Maps
               </a>
             </p>
           </div>
         </section>
+
+
 
         <!-- ========================= map-section end ========================= -->
 

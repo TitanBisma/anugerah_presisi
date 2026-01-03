@@ -26,9 +26,10 @@ if (!$id) {
    CEK STATUS PENGIRIMAN
 =========================== */
 $cek = mysqli_prepare($conn, "
-    SELECT status_pengiriman 
+    SELECT status_kirim 
     FROM tb_pengiriman 
     WHERE id_jual = ?
+
 ");
 mysqli_stmt_bind_param($cek, 'i', $id);
 mysqli_stmt_execute($cek);
@@ -43,7 +44,7 @@ if (!$data) {
     exit;
 }
 
-if ($data['status_pengiriman'] !== 'Sudah Tiba') {
+if ($data['status_kirim'] !== 'Sudah Tiba') {
     echo json_encode([
         'status' => 'error',
         'message' => 'Pesanan tidak dapat diselesaikan karena barang belum tiba di tujuan'
